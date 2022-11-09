@@ -15,8 +15,8 @@ import time
 from src.anti_spoof_predict import AntiSpoofPredict
 from src.generate_patches import CropImage
 from src.utility import parse_model_name
-warnings.filterwarnings('ignore')
 
+warnings.filterwarnings('ignore')
 
 SAMPLE_IMAGE_PATH = "./images/sample/"
 
@@ -24,7 +24,7 @@ SAMPLE_IMAGE_PATH = "./images/sample/"
 # 因为安卓端APK获取的视频流宽高比为3:4,为了与之一致，所以将宽高比限制为3:4
 def check_image(image):
     height, width, channel = image.shape
-    if width/height != 3/4:
+    if width / height != 3 / 4:
         print("Image is not appropriate!!!\nHeight/Width should be 4/3.")
         return False
     else:
@@ -57,11 +57,11 @@ def test(image_name, model_dir, device_id):
         img = image_cropper.crop(**param)
         start = time.time()
         prediction += model_test.predict(img, os.path.join(model_dir, model_name))
-        test_speed += time.time()-start
+        test_speed += time.time() - start
 
     # draw result of prediction
     label = np.argmax(prediction)
-    value = prediction[0][label]/2
+    value = prediction[0][label] / 2
     if label == 1:
         print("Image '{}' is Real Face. Score: {:.2f}.".format(image_name, value))
         result_text = "RealFace Score: {:.2f}".format(value)
@@ -80,7 +80,7 @@ def test(image_name, model_dir, device_id):
         image,
         result_text,
         (image_bbox[0], image_bbox[1] - 5),
-        cv2.FONT_HERSHEY_COMPLEX, 0.5*image.shape[0]/1024, color)
+        cv2.FONT_HERSHEY_COMPLEX, 0.5 * image.shape[0] / 1024, color)
 
     image_name = os.path.basename(image_name)
     format_ = os.path.splitext(image_name)[-1]

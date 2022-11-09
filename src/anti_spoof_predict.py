@@ -62,8 +62,8 @@ class AntiSpoofPredict(Detection):
         model_name = os.path.basename(model_path)
         h_input, w_input, model_type, _ = parse_model_name(model_name)
         self.kernel_size = get_kernel(h_input, w_input,)
-        self.model = MODEL_MAPPING[model_type](conv6_kernel=self.kernel_size).to(self.device)
-        wrapper = MultiFTNet(num_classes=2, conv6_kernel=self.kernel_size)
+        # self.model = MODEL_MAPPING[model_type](conv6_kernel=self.kernel_size).to(self.device)
+        wrapper = MultiFTNet(num_classes=2, conv6_kernel=self.kernel_size).to(self.device)
 
         # load model weight
         state_dict = torch.load(model_path, map_location=self.device)
