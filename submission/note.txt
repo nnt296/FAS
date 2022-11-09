@@ -1,0 +1,2 @@
+predict_1: sample 5 images, check 2 fakes -> fake
+predict_2: sample 5 images, sum score
