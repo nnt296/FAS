@@ -19,21 +19,22 @@ def get_default_config():
     conf = EasyDict()
 
     # ----------------------training---------------
-    conf.lr = 1e-1
+    conf.lr = 1e-3
     # [9, 13, 15]
-    conf.milestones = [10, 15, 22]  # down learing rate
+    conf.milestones = [17, 29]  # down learing rate
     conf.gamma = 0.1
-    conf.epochs = 25
+    conf.epochs = 35
     conf.momentum = 0.9
-    conf.batch_size = 1024
+    conf.batch_size = 64
 
     # model
-    conf.num_classes = 3
+    conf.num_classes = 2
     conf.input_channel = 3
     conf.embedding_size = 128
 
     # dataset
-    conf.train_root_path = './datasets/rgb_image'
+    conf.train_root_path = './datasets/train'
+    conf.val_root_path = './datasets/val'
 
     # save file path
     conf.snapshot_dir_path = './saved_logs/snapshot'
@@ -49,12 +50,13 @@ def get_default_config():
 
 
 def update_config(args, conf):
-    conf.devices = args.devices
+    # conf.devices = args.devices
     conf.patch_info = args.patch_info
     w_input, h_input = get_width_height(args.patch_info)
     conf.input_size = [h_input, w_input]
     conf.kernel_size = get_kernel(h_input, w_input)
-    conf.device = "cuda:{}".format(conf.devices[0]) if torch.cuda.is_available() else "cpu"
+    # conf.device = "cuda:{}".format(conf.devices[0]) if torch.cuda.is_available() else "cpu"
+    conf.device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
 
     # resize fourier image size
     conf.ft_height = 2*conf.kernel_size[0]

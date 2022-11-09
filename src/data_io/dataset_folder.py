@@ -63,3 +63,14 @@ def generate_FT(image):
             minn = min(fimg[i])
     fimg = (fimg - minn+1) / (maxx - minn+1)
     return fimg
+
+
+if __name__ == '__main__':
+    import matplotlib.pyplot as plt
+    import os
+
+    for im_name in ["fake1", "fake2", "fake3", "fake4", "fake5", "real1", "real2", "real3"]:
+        image = cv2.imread(os.path.join("/home/local/ZaChallenge/2022/liveliness/sample", f"{im_name}.png"))
+        fft_image = generate_FT(image)
+        plt.imshow(fft_image)
+        plt.show()

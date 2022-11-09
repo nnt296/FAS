@@ -33,7 +33,7 @@ class TrainMain:
         self.cls_criterion = CrossEntropyLoss()
         self.ft_criterion = MSELoss()
         self.model = self._define_network()
-        self.optimizer = optim.SGD(self.model.module.parameters(),
+        self.optimizer = optim.SGD(self.model.parameters(),
                                    lr=self.conf.lr,
                                    weight_decay=5e-4,
                                    momentum=self.conf.momentum)
@@ -73,20 +73,15 @@ class TrainMain:
 
                 if self.step % self.board_loss_every == 0 and self.step != 0:
                     loss_board = running_loss / self.board_loss_every
-                    self.writer.add_scalar(
-                        'Training/Loss', loss_board, self.step)
+                    self.writer.add_scalar('Training/Loss', loss_board, self.step)
                     acc_board = running_acc / self.board_loss_every
-                    self.writer.add_scalar(
-                        'Training/Acc', acc_board, self.step)
+                    self.writer.add_scalar('Training/Acc', acc_board, self.step)
                     lr = self.optimizer.param_groups[0]['lr']
-                    self.writer.add_scalar(
-                        'Training/Learning_rate', lr, self.step)
+                    self.writer.add_scalar('Training/Learning_rate', lr, self.step)
                     loss_cls_board = running_loss_cls / self.board_loss_every
-                    self.writer.add_scalar(
-                        'Training/Loss_cls', loss_cls_board, self.step)
+                    self.writer.add_scalar('Training/Loss_cls', loss_cls_board, self.step)
                     loss_ft_board = running_loss_ft / self.board_loss_every
-                    self.writer.add_scalar(
-                        'Training/Loss_ft', loss_ft_board, self.step)
+                    self.writer.add_scalar('Training/Loss_ft', loss_ft_board, self.step)
 
                     running_loss = 0.
                     running_acc = 0.
@@ -123,7 +118,7 @@ class TrainMain:
             'conv6_kernel': self.conf.kernel_size}
 
         model = MultiFTNet(**param).to(self.conf.device)
-        model = torch.nn.DataParallel(model, self.conf.devices)
+        # model = torch.nn.DataParallel(model, self.conf.devices)
         model.to(self.conf.device)
         return model
 

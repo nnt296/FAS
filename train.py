@@ -19,9 +19,9 @@ def parse_args():
     parser.add_argument("--patch_info", type=str, default="1_80x80",
                         help="[org_1_80x60 / 1_80x80 / 2.7_80x80 / 4_80x80]")
     args = parser.parse_args()
-    cuda_devices = [int(elem) for elem in args.device_ids]
-    os.environ["CUDA_VISIBLE_DEVICES"] = ','.join(map(str, cuda_devices))
-    args.devices = [x for x in range(len(cuda_devices))]
+    # cuda_devices = [int(elem) for elem in args.device_ids]
+    # os.environ["CUDA_VISIBLE_DEVICES"] = ','.join(map(str, cuda_devices))
+    # args.devices = [x for x in range(len(cuda_devices))]
     return args
 
 
