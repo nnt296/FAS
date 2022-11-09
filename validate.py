@@ -29,7 +29,6 @@ def test_folder(image_dir: str, model_dir: str,
     predictions = []
     for label in sorted(os.listdir(image_dir)):
         gt = 1 if int(label) == 1 else 0
-        ground_truths.append(gt)
 
         label_dir = os.path.join(image_dir, label)
         for image_name in sorted(os.listdir(label_dir)):
@@ -63,9 +62,13 @@ def test_folder(image_dir: str, model_dir: str,
                 print("Image '{}' \tis Fake Face. \tScore: {:.2f}.".format(image_name, score))
                 result_text = "FakeFace Score: {:.2f}".format(score)
                 color = (0, 0, 255)
-            print("Prediction cost {:.2f} s".format(test_speed))
+            print("Prediction cost {:.2f}s".format(test_speed))
 
-            predictions.append(1) if pred == 1 else 0
+            predictions.append(pred)
+            ground_truths.append(gt)
+            assert len(predictions) == len(ground_truths), \
+                f"Error mismatch gt vs preds: {len(ground_truths)} = {len(predictions)}"
+
             if save_results:
                 cv2.rectangle(image, (image_bbox[0], image_bbox[1]),
                               (image_bbox[0] + image_bbox[2], image_bbox[1] + image_bbox[3]), color, 2)
@@ -76,6 +79,8 @@ def test_folder(image_dir: str, model_dir: str,
                 cv2.imwrite(os.path.join(save_dir, result_image_name), image)
 
     confusion_matrix = metrics.confusion_matrix(y_true=ground_truths, y_pred=predictions)
+    f1 = metrics.f1_score(y_true=ground_truths, y_pred=predictions)
+    print(f"F1 Score: {f1:.2f}")
     print(confusion_matrix)
 
 
@@ -103,4 +108,4 @@ if __name__ == "__main__":
         help="output directory to store inference results")
 
     args = parser.parse_args()
-    test_folder(args.image_folder, args.model_dir, args.device_id, save_dir=args.out_dir)
+    test_folder(args.image_folder, args.model_dir, args.device_id, save_dir=args.out_dir, save_results=True)
