@@ -16,6 +16,8 @@ warnings.filterwarnings('ignore')
 
 def sample_video(video_path: str, num_sample: int = 5) -> List[np.ndarray]:
     cap = cv2.VideoCapture(video_path)
+    fps = cap.get(cv2.CAP_PROP_FPS)
+
     num_frames = 0
     while True:
         ret, frame = cap.read()
@@ -23,6 +25,8 @@ def sample_video(video_path: str, num_sample: int = 5) -> List[np.ndarray]:
             break
         num_frames += 1
     cap.release()
+
+    num_sample = max(min(num_sample, int(num_frames / fps)), 2)
 
     cap = cv2.VideoCapture(video_path)
     chosen_frames = []
@@ -77,6 +81,9 @@ def infer_video(video_path: str):
 
     chosen_frames = sample_video(video_path, num_sample=num_sample)
 
+    if len(chosen_frames) == 0:
+        return 0, np.array((1, 0))
+
     predictions = []
     scores = []
     for frame in chosen_frames:
@@ -115,7 +122,8 @@ def create_submission(video_dir: str):
             video_path = os.path.join(video_dir, video_name)
             is_real, final_score = infer_video(video_path)
             # writer.writerow([video_name, is_real])
-            writer.writerow([video_name, f"{final_score[is_real]:.5f}"])
+            score = final_score[1]
+            writer.writerow([video_name, f"{score:.5f}"])
 
 
 if __name__ == "__main__":
