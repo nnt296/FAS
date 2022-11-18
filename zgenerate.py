@@ -13,11 +13,7 @@ detector = Detection()
 crop = CropImage()
 
 
-def generate_dateset(video_path: str, dst_dir: str, scale: float,
-                     dst_width: int, dst_height: int, k: int = 5,
-                     is_val=False):
-    global detector, crop
-
+def sample_video(video_path: str, num_sample: int = 5):
     cap = cv2.VideoCapture(video_path)
     num_frames = 0
     while True:
@@ -28,33 +24,41 @@ def generate_dateset(video_path: str, dst_dir: str, scale: float,
     cap.release()
 
     cap = cv2.VideoCapture(video_path)
-    chosen_idxs = random.choices(list(range(num_frames)), k=k)
-    current_idx = 0
-    vid_name = os.path.basename(video_path).split('.')[0]
-    is_real = int(os.path.basename(dst_dir))
+    chosen_frames = []
+
+    num_sample = min(max(num_frames - 3, 0), num_sample)
+
+    step = num_frames // (num_sample + 1)
+    current = 0
+    index = step
     while True:
         ret, frame = cap.read()
         if not ret:
             break
-        if current_idx in chosen_idxs:
-            # Detect and scale image
-            bbox = detector.get_bbox(frame)
-            if bbox[2] * bbox[3] < 100:
-                new_idxs = list(set(range(current_idx, num_frames)).difference(set(chosen_idxs)))
-                if not len(new_idxs):
-                    break
-                rand_idx = random.choice(new_idxs)
-                chosen_idxs.append(rand_idx)
-                print(f"Empty/tiny face detected, select new idx: {vid_name} with GT label: {is_real}")
-            else:
-                if not is_val:
-                    frame = crop.crop(frame, bbox, scale, dst_width, dst_height, crop=True)
 
-                name = vid_name + '_' + f"{len(os.listdir(dst_dir)) + 1}".zfill(3) + ".png"
-                dst_path = os.path.join(dst_dir, name)
-                cv2.imwrite(dst_path, frame)
-        current_idx += 1
+        if current == index and len(chosen_frames) < num_sample:
+            chosen_frames.append(frame)
+            index += step
+        current += 1
     cap.release()
+
+    if len(chosen_frames) != num_sample:
+        print(f"Error {video_path}")
+        print(f"Expect: {num_sample} got {len(chosen_frames)}")
+
+    return chosen_frames
+
+
+def crop_and_expand(frames, scale, dst_width, dst_height):
+    new_frames = []
+    for frame in frames:
+        bbox = detector.get_bbox(frame)
+        if bbox[2] * bbox[3] < 100:
+            continue
+        else:
+            frame = crop.crop(frame, bbox, scale, dst_width, dst_height, crop=True)
+            new_frames.append(frame)
+    return new_frames
 
 
 if __name__ == '__main__':
@@ -81,9 +85,11 @@ if __name__ == '__main__':
     rz_height = 384
     rz_width = 384
 
-    scale = 2.
+    scale = 2.2
     fake_dir = f"./datasets/train/{scale:.1f}_{rz_height}x{rz_width}/0"
     real_dir = f"./datasets/train/{scale:.1f}_{rz_height}x{rz_width}/1"
+    # fake_dir = f"./datasets/train/original_{rz_height}x{rz_width}/0"
+    # real_dir = f"./datasets/train/original_{rz_height}x{rz_width}/1"
 
     make_if_not_exist(fake_dir)
     make_if_not_exist(real_dir)
@@ -94,29 +100,41 @@ if __name__ == '__main__':
         fname = row["fname"]
 
         video_path = os.path.join(video_root, fname)
-        generate_dateset(video_path,
-                         dst_dir=fake_dir if label == 0 else real_dir,
-                         scale=scale,
-                         dst_width=rz_width,
-                         dst_height=rz_height,
-                         k=5)
 
-    # # Set up validation
-    # fake_dir = f"./datasets/val/original/0"
-    # real_dir = f"./datasets/val/original/1"
-    #
-    # make_if_not_exist(fake_dir)
-    # make_if_not_exist(real_dir)
-    #
-    # video_root = os.path.join(root, "train", "videos")
-    # for i, row in tqdm(val_df.iterrows(), total=len(val_df)):
-    #     label = row["liveness_score"]
-    #     fname = row["fname"]
-    #
-    #     video_path = os.path.join(video_root, fname)
-    #     generate_dateset(video_path,
-    #                      dst_dir=fake_dir if label == 0 else real_dir,
-    #                      scale=scale,
-    #                      dst_width=rz_width,
-    #                      dst_height=rz_height,
-    #                      k=3, is_val=True)
+        frames = sample_video(video_path, num_sample=30)
+        frames = crop_and_expand(frames, scale, rz_width, rz_height)
+
+        dst_dir = fake_dir if label == 0 else real_dir
+        vid_name = fname.split('.')[0]
+        for j, frame in enumerate(frames):
+            name = vid_name + '_' + f"{j}".zfill(3) + ".png"
+            dst_path = os.path.join(dst_dir, name)
+            frame = cv2.resize(frame, (rz_width, rz_height))
+            cv2.imwrite(dst_path, frame)
+
+    # Set up validation
+    fake_dir = f"./datasets/val/{scale:.1f}_{rz_height}x{rz_width}/0"
+    real_dir = f"./datasets/val/{scale:.1f}_{rz_height}x{rz_width}/1"
+    # fake_dir = f"./datasets/val/original_{rz_height}x{rz_width}/0"
+    # real_dir = f"./datasets/val/original_{rz_height}x{rz_width}/1"
+
+    make_if_not_exist(fake_dir)
+    make_if_not_exist(real_dir)
+
+    video_root = os.path.join(root, "train", "videos")
+    for i, row in tqdm(val_df.iterrows(), total=len(val_df)):
+        label = row["liveness_score"]
+        fname = row["fname"]
+
+        video_path = os.path.join(video_root, fname)
+
+        frames = sample_video(video_path, num_sample=20)
+        frames = crop_and_expand(frames, scale, rz_width, rz_height)
+
+        dst_dir = fake_dir if label == 0 else real_dir
+        vid_name = fname.split('.')[0]
+        for j, frame in enumerate(frames):
+            name = vid_name + '_' + f"{j}".zfill(3) + ".png"
+            dst_path = os.path.join(dst_dir, name)
+            frame = cv2.resize(frame, (rz_width, rz_height))
+            cv2.imwrite(dst_path, frame)
