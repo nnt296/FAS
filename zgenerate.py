@@ -61,6 +61,35 @@ def crop_and_expand(frames, scale, dst_width, dst_height):
     return new_frames
 
 
+def prepare_data(video_dir, scale, dst_width, dst_height, mode="train", num_sample=30):
+    if scale != "origin":
+        fake_dir = f"./datasets/{mode}/{scale:.1f}_{dst_height}x{dst_width}/0"
+        real_dir = f"./datasets/{mode}/{scale:.1f}_{dst_height}x{dst_width}/1"
+    else:
+        fake_dir = f"./datasets/{mode}/original_{dst_height}x{dst_width}/0"
+        real_dir = f"./datasets/{mode}/original_{dst_height}x{dst_width}/1"
+
+    make_if_not_exist(fake_dir)
+    make_if_not_exist(real_dir)
+
+    for i, row in tqdm(train_df.iterrows(), total=len(train_df)):
+        label = row["liveness_score"]
+        fname = row["fname"]
+
+        video_path = os.path.join(video_dir, fname)
+
+        frames = sample_video(video_path, num_sample=num_sample)
+        frames = crop_and_expand(frames, scale, dst_width, dst_height)
+
+        dst_dir = fake_dir if label == 0 else real_dir
+        vid_name = fname.split('.')[0]
+        for j, frame in enumerate(frames):
+            name = vid_name + '_' + f"{j}".zfill(3) + ".png"
+            dst_path = os.path.join(dst_dir, name)
+            frame = cv2.resize(frame, (dst_width, dst_height))
+            cv2.imwrite(dst_path, frame)
+
+
 if __name__ == '__main__':
     root = "/mnt/ssd_1T/zalo_ai_22/liveness_detection"
 
@@ -80,61 +109,14 @@ if __name__ == '__main__':
     print(f"Len test: {len(val_df)}")
 
     # ratio 512x384
-    # rz_height = 512
-    # rz_width = 512 // 4 * 3
-    rz_height = 384
-    rz_width = 384
+    ls_heights = [384, 384, 384]
+    ls_widths = [288, 384, 384]
+    ls_scales = ["original", "1.4", "2.2"]
 
-    scale = 2.2
-    fake_dir = f"./datasets/train/{scale:.1f}_{rz_height}x{rz_width}/0"
-    real_dir = f"./datasets/train/{scale:.1f}_{rz_height}x{rz_width}/1"
-    # fake_dir = f"./datasets/train/original_{rz_height}x{rz_width}/0"
-    # real_dir = f"./datasets/train/original_{rz_height}x{rz_width}/1"
+    for _scale, _rz_width, _rz_height in zip(ls_scales, ls_widths, ls_heights):
+        video_root = os.path.join(root, "train", "videos")
+        prepare_data(video_root, _scale, _rz_width, _rz_height, mode="train", num_sample=30)
 
-    make_if_not_exist(fake_dir)
-    make_if_not_exist(real_dir)
-
-    video_root = os.path.join(root, "train", "videos")
-    for i, row in tqdm(train_df.iterrows(), total=len(train_df)):
-        label = row["liveness_score"]
-        fname = row["fname"]
-
-        video_path = os.path.join(video_root, fname)
-
-        frames = sample_video(video_path, num_sample=30)
-        frames = crop_and_expand(frames, scale, rz_width, rz_height)
-
-        dst_dir = fake_dir if label == 0 else real_dir
-        vid_name = fname.split('.')[0]
-        for j, frame in enumerate(frames):
-            name = vid_name + '_' + f"{j}".zfill(3) + ".png"
-            dst_path = os.path.join(dst_dir, name)
-            frame = cv2.resize(frame, (rz_width, rz_height))
-            cv2.imwrite(dst_path, frame)
-
-    # Set up validation
-    fake_dir = f"./datasets/val/{scale:.1f}_{rz_height}x{rz_width}/0"
-    real_dir = f"./datasets/val/{scale:.1f}_{rz_height}x{rz_width}/1"
-    # fake_dir = f"./datasets/val/original_{rz_height}x{rz_width}/0"
-    # real_dir = f"./datasets/val/original_{rz_height}x{rz_width}/1"
-
-    make_if_not_exist(fake_dir)
-    make_if_not_exist(real_dir)
-
-    video_root = os.path.join(root, "train", "videos")
-    for i, row in tqdm(val_df.iterrows(), total=len(val_df)):
-        label = row["liveness_score"]
-        fname = row["fname"]
-
-        video_path = os.path.join(video_root, fname)
-
-        frames = sample_video(video_path, num_sample=20)
-        frames = crop_and_expand(frames, scale, rz_width, rz_height)
-
-        dst_dir = fake_dir if label == 0 else real_dir
-        vid_name = fname.split('.')[0]
-        for j, frame in enumerate(frames):
-            name = vid_name + '_' + f"{j}".zfill(3) + ".png"
-            dst_path = os.path.join(dst_dir, name)
-            frame = cv2.resize(frame, (rz_width, rz_height))
-            cv2.imwrite(dst_path, frame)
+        # Set up validation
+        video_root = os.path.join(root, "train", "videos")
+        prepare_data(video_root, _scale, _rz_width, _rz_height, mode="val", num_sample=20)
